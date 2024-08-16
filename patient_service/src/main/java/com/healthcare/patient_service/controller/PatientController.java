@@ -1,44 +1,76 @@
 package com.healthcare.patient_service.controller;
 
+import com.healthcare.patient_service.converter.PatientDtoConverter;
 import com.healthcare.patient_service.domain.Patient;
-import com.healthcare.patient_service.domain.PreExistingIllness;
 import com.healthcare.patient_service.dto.PatientDto;
 import com.healthcare.patient_service.service.PatientService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.*;
 
+@RestController
+@RequestMapping("/api/v1/patients")
 public class PatientController {
     private final PatientService patientService;
+    private final PatientDtoConverter converter;
 
-    public PatientController(PatientService patientService) {
+    public PatientController(PatientService patientService, PatientDtoConverter converter) {
         this.patientService = patientService;
+        this.converter = converter;
     }
 
     @PostMapping
     public ResponseEntity<PatientDto> createPatient(@Valid @RequestBody PatientDto dto) {
+        // TODO handle DuplicatePatientException
         // Create a new patient
-        Patient patient = toEntity(dto);
+        Patient patient = converter.toEntity(dto);
         // Save the patient to the database
         patient = patientService.createPatient(patient);
-        dto = toDto(patient);
-        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+        var responseBody = converter.toDto(patient);
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseBody);
     }
 
-    private PatientDto toDto(Patient patient) {
-        return new PatientDto(patient.getPatientId(), patient.getFullName(),
-                patient.getEmail(), patient.getPhone(), patient.getAddress(), patient.getDateOfBirth()4);
+    // GET /api/v1/patients/{id}
+    @GetMapping("/{id}")
+    public ResponseEntity<PatientDto> getPatient(@PathVariable long id) {
+        // TODO handle PatientNotFoundException
+        // Get the patient from the database
+        Patient patient = patientService.getPatient(id);
+        var responseBody = converter.toDto(patient);
+        return ResponseEntity.ok(responseBody);
     }
 
-    private Patient toEntity(PatientDto dto) {
-        Patient patient = new Patient();
-        patient.setFullName(dto.fullName());
-        patient.setEmail(dto.email());
-        patient.setPhone(dto.phone());
-        patient.setAddress(dto.address());
-        patient.setDateOfBirth(dto.dateOfBirth());
-        return patient;
+    // GET /api/v1/patients?k=value&v=123
+    @GetMapping
+    public ResponseEntity<PatientDto> searchForPatient(
+            @RequestParam(name = "k") String key,
+            @RequestParam(name="v") String data) {
+        // TODO handle PatientNotFoundException
+        // Search for the patient in the database
+        Patient patient ;
+        if (key.equals("email")) {
+            patient = patientService.searchByEmail(data);
+        } else {
+            patient = patientService.searchByPhone(data);
+        }
+        var responseBody = converter.toDto(patient);
+        return ResponseEntity.ok(responseBody);
     }
+
+    // TODO Implement the updatePatient method
+    // PUT /api/v1/patients/{id}
+
+    // DELETE /api/v1/patients/{id}
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Object> deletePatient(@PathVariable long id) {
+        // TODO handle PatientNotFoundException
+        // Delete the patient from the database
+        patientService.deletePatient(id);
+        return ResponseEntity.ok("Patient deleted");
+    }
+
+    // TODO Implement the getIllnessForPatient method
+    // GET /api/v1/patients/{id}/illnesses
+
 }

@@ -15,5 +15,9 @@ public class PreExistingIllness {
     @Id
     @GeneratedValue(strategy = GenerationType.TABLE)
     private int id;
-    private String illness;
+    private String illnessName;
+
+    public PreExistingIllness(String illnessName) {
+        this.illnessName = illnessName;
+    }
 }
